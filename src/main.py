@@ -206,29 +206,29 @@ class Game2048:
         
             if not isinstance(self.controller, Human):
                 # Debug (step by step)
-                waiting_for_input = True
-                while waiting_for_input:
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            pygame.quit()
-                            exit(0)
-                        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                            waiting_for_input = False
-                AI_move_direction = self.controller.update(self.board, self.score)
-                moved = self.move(AI_move_direction)
-                print(f"AI choose to move: {AI_move_direction}, result: ")
+                # waiting_for_input = True
+                # while waiting_for_input:
+                #     for event in pygame.event.get():
+                #         if event.type == pygame.QUIT:
+                #             pygame.quit()
+                #             exit(0)
+                #         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                #             waiting_for_input = False
+                # AI_move_direction = self.controller.update(self.board, self.score)
+                # moved = self.move(AI_move_direction)
+                # print(f"AI choose to move: {AI_move_direction}, result: ")
                 # Debug
 
                 # Real below
-                # moved = self.move(self.controller.update(self.board, self.score))
+                moved = self.move(self.controller.update(self.board, self.score))
                 # Real end
 
             if moved:
                 self.add_new_tile()
                 # DEBUG check moved result
-                for row in self.board:
-                    print(row)
-                print(f"--------------------------\n")
+                # for row in self.board:
+                #     print(row)
+                # print(f"--------------------------\n")
                 # DEBUG
                 lost = not self.check_moves_available()
 
@@ -254,16 +254,22 @@ class AIPlayer(Controller):
 
     def __init__(self) -> None:
         super().__init__()
+        self.mcts = None
 
-    def update(self, board:list[list[int]], score: int) -> str: #mungkin di sini kasih referensi ke game itself
-        testMCTS = MCTS(board)
-        # Debug
-        print("Root node board: ")
-        for row in testMCTS.root_node.board:
-            print(row)
-        print()
-        # DEBUG
-        return random.choice(["left", "right", "up", "down"])
+    
+    def update(self, board: list[list[int]], score: int) -> str:
+        if self.mcts is None:
+            self.mcts = MCTS(board)
+        return self.mcts.update(board, score)
+    # def update(self, board:list[list[int]], score: int) -> str: #mungkin di sini kasih referensi ke game itself
+    #     testMCTS = MCTS(board)
+    #     # Debug
+    #     print("Root node board: ")
+    #     for row in testMCTS.root_node.board:
+    #         print(row)
+    #     print()
+    #     # DEBUG
+    #     return random.choice(["left", "right", "up", "down"])
 
 if __name__ == "__main__":
     # 人間でプレイしたいとき
