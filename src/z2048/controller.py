@@ -42,7 +42,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 600) -> str:
+    def run_mcts(self, simulations: int = 4000) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -62,7 +62,7 @@ class MCTS():
         # Step 2: Run MCTS simulations
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=200)
+            score = self.simulate(node, steps=5)
             self.backpropagate(node, score)
 
         # Step 3: Filter eligible children based on:
@@ -89,8 +89,8 @@ class MCTS():
         # Step 4: Select the best move
         if eligible_children:
             # Select the child with the highest average value
-            best_child = max(eligible_children, key=lambda n: n.value / n.visit)
-            # best_child = max(eligible_children, key=lambda n: n.visit)
+            # best_child = max(eligible_children, key=lambda n: n.value / n.visit)
+            best_child = max(eligible_children, key=lambda n: n.visit)
             print(f"best child: {best_child.move_direction}")
             return best_child.move_direction
         else:
@@ -154,6 +154,8 @@ class MCTS():
         for _ in range(steps):
             move = random.choice(["left", "right", "up", "down"])
             new_board, score = self.simulate_move(current_board, move)
+
+            # new_board, score = self.next_move(current_board)
             
             if new_board == current_board:
                 # Skip invalid moves (no change)
@@ -164,6 +166,28 @@ class MCTS():
 
         return total_score
     
+    # def next_move(self, board: list[list[int]]):
+    #     current_board = [row[:] for row in board]
+    #     max_zero = 0
+    #     best_board: current_board
+    #     best_score: 0 
+    #     for move in ["left", "right", "up", "down"]:
+    #         new_board, score = self.simulate_move(current_board, move)
+
+    #         # check 0 count
+    #         zero_count = 0            
+    #         for row in current_board:
+    #             for tile in row:
+    #                 if tile == 0:
+    #                     zero_count += 0
+            
+    #         if zero_count >= max_zero:
+    #             max_zero = zero_count
+    #             best_board = new_board
+    #             best_score = score
+        
+    #     return best_board, best_score
+
     @staticmethod
     def simulate_move(board: list[list[int]], direction: str) -> tuple[list[list[int]], int]:
         """
