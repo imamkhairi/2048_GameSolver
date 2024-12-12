@@ -42,33 +42,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    # def update(self, board: list[list[int]], score: int) -> str:
-    #     """
-    #     Updates the MCTS root node while reusing part of the tree if possible.
-    #     If a child node matches the current board, it becomes the new root.
-    #     Otherwise, reset the tree.
-    #     """
-    #     # Search for a matching child node in the current root
-    #     matching_child = None
-    #     for child in self.root_node.child:
-    #         if child.board == board:
-    #             matching_child = child
-    #             break
-
-    #     if matching_child:
-    #         # Reuse the matching child as the new root
-    #         self.root_node = matching_child
-    #         self.root_node.parent = None  # Detach it from the previous root
-    #         print("Reused a matching child node as the new root.")
-    #     else:
-    #         # No matching child found, reset the tree
-    #         self.root_node = self.Node(None, "root", board)
-    #         print("Reset the tree: no matching child found.")
-
-    #     # Run MCTS simulations and return the best move
-    #     return self.run_mcts()
-    
-    def run_mcts(self, simulations: int = 100) -> str:
+    def run_mcts(self, simulations: int = 600) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -81,13 +55,14 @@ class MCTS():
         ]
 
         if not valid_moves:
+            print("no valid move")
             # If no valid moves exist, return a default move (game over scenario)
             return "left"
 
         # Step 2: Run MCTS simulations
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=50)
+            score = self.simulate(node, steps=200)
             self.backpropagate(node, score)
 
         # Step 3: Filter eligible children based on:
@@ -99,7 +74,12 @@ class MCTS():
             if child.visit >= 3
             and child.value > 0
             and child.move_direction in valid_moves
+            # if child.move_direction in valid_moves
+            # and child.value > 0
         ]
+        
+        for child in self.root_node.child:
+            print(f"move: {child.move_direction}, visit: {child.visit}, avg: {child.value/child.visit}")
 
         # Debug: Print eligible children details
         # print()
@@ -110,13 +90,13 @@ class MCTS():
         if eligible_children:
             # Select the child with the highest average value
             best_child = max(eligible_children, key=lambda n: n.value / n.visit)
+            # best_child = max(eligible_children, key=lambda n: n.visit)
             print(f"best child: {best_child.move_direction}")
             return best_child.move_direction
         else:
-            random_direction = random.choice(valid_moves)
-            print(f"random: {random_direction}") 
-            # Fallback: Select a move from the list of valid moves
-            return random_direction
+            move = random.choice(valid_moves)
+            print(f"random: {move}")
+            return move
 
     def is_move_valid(self, board: list[list[int]], move_direction: str) -> bool:
         """
@@ -163,6 +143,7 @@ class MCTS():
             return child_node
         return current_node
 
+    # random 
     def simulate(self, node: 'Node', steps: int = 50) -> int:
         """
         Simulates a series of random moves starting from the given node.
@@ -171,7 +152,7 @@ class MCTS():
         total_score = 0
 
         for _ in range(steps):
-            move = random.choice(valid_moves)
+            move = random.choice(["left", "right", "up", "down"])
             new_board, score = self.simulate_move(current_board, move)
             
             if new_board == current_board:
@@ -204,10 +185,23 @@ class MCTS():
             new_row = [i for i in new_row if i != 0]  # Remove zeros again
             new_row += [0] * (SIZE - len(new_row))  # Fill with zeros
             return new_row, score
+        
+        def add_new_tile(board):
+            SIZE = len(board)
+            empty_tiles = [
+                (r, c)
+                for r in range(SIZE)
+                for c in range(SIZE)
+                if board[r][c] == 0
+            ]
+            if empty_tiles: # check whether empty or not
+                row, col = random.choice(empty_tiles) # only add 1 tile by random
+                board[row][col] = 2 if random.random() < 0.9 else 4 # 90% 2, 10% 4
 
         # Make a copy of the board to avoid mutating the original
         new_board = [row[:] for row in board]
         score_gained = 0
+        score_final = 0
 
         if direction == "left":
             for i in range(SIZE):
@@ -235,8 +229,13 @@ class MCTS():
                 score_gained += score
             new_board = [list(row) for row in zip(*transposed)]  # Transpose back
 
-        return new_board, score_gained
+        if new_board != board:
+            add_new_tile(new_board)
+            score_final = score_gained
+
+        return new_board, score_final
     
+
     def backpropagate(self, node: 'Node', score: int):
         """
         Propagates the simulation result back up the tree.

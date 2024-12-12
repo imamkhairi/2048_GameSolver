@@ -239,7 +239,8 @@ class Game2048:
                 exit(0)
 
             pygame.display.flip()
-            clock.tick(30)
+            clock.tick(60)
+            # clock.tick(30)
 
         pygame.quit()
 
