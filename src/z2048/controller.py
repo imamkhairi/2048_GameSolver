@@ -29,9 +29,19 @@ class Human(Controller):
 
 class MCTS():
     root_node: 'Node'
-
-    def __init__(self, board: list[list[int]] = None) -> None:
+    weights = {
+            "monotonicity": 2.5,  # Original default values
+            "smoothness": 2.0,
+            "empty": 1.5,
+            "max_corner": 0.8,
+            "max_tile": 0.5,
+            "node_average": 1.3,
+    }
+    
+    def __init__(self, board: list[list[int]] = None, weights: dict = None) -> None:
         self.root_node = self.Node(None, "root", board)
+        if weights:
+            self.weights = weights
     
     def update(self, board: list[list[int]], score: int) -> str:
         """
@@ -82,12 +92,12 @@ class MCTS():
 
     def evaluate_board(self, board, value, visit):
         # Weights for each component (adjust as needed)
-        WEIGHT_MONOTONICITY = 2.0
-        WEIGHT_SMOOTHNESS   = 2.0
-        WEIGHT_EMPTY        = 1.5
-        WEIGHT_MAX_CORNER   = 0.8
-        WEIGHT_MAX_TILE     = 0.5
-        WEIGHT_NODE_AVERAGE = 1.3 
+        WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 2.0)
+        WEIGHT_SMOOTHNESS   = self.weights.get('smoothness', 2.0)
+        WEIGHT_EMPTY        = self.weights.get('empty', 1.5)
+        WEIGHT_MAX_CORNER   = self.weights.get('max_corner', 0.8)
+        WEIGHT_MAX_TILE     = self.weights.get('max_tile', 0.5)
+        WEIGHT_NODE_AVERAGE = self.weights.get('node_average', 1.3)
 
         rows = board
         cols = list(zip(*board))
@@ -151,7 +161,8 @@ class MCTS():
                     + WEIGHT_MAX_TILE * max_tile_score
                     + WEIGHT_NODE_AVERAGE * avg_node_value)
         
-        # print(f"total {total_score}")
+        # print(f"mono: {WEIGHT_MONOTONICITY}")
+        
         return total_score
 
 

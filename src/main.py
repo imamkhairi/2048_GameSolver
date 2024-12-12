@@ -252,13 +252,14 @@ class RandomPlayer(Controller):
         return random.choice(["left", "right", "up", "down"])
 
 class AIPlayer(Controller):
-    def __init__(self) -> None:
+    def __init__(self, weight:dict) -> None:
         super().__init__()
         self.mcts = None
+        self.weight = weight
     
     def update(self, board: list[list[int]], score: int) -> str:
         if self.mcts is None:
-            self.mcts = MCTS(board)
+            self.mcts = MCTS(board, self.weight)
         return self.mcts.update(board, score)
 
 if __name__ == "__main__":
