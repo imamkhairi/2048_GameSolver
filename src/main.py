@@ -252,25 +252,14 @@ class RandomPlayer(Controller):
         return random.choice(["left", "right", "up", "down"])
 
 class AIPlayer(Controller):
-
     def __init__(self) -> None:
         super().__init__()
         self.mcts = None
-
     
     def update(self, board: list[list[int]], score: int) -> str:
         if self.mcts is None:
             self.mcts = MCTS(board)
         return self.mcts.update(board, score)
-    # def update(self, board:list[list[int]], score: int) -> str: #mungkin di sini kasih referensi ke game itself
-    #     testMCTS = MCTS(board)
-    #     # Debug
-    #     print("Root node board: ")
-    #     for row in testMCTS.root_node.board:
-    #         print(row)
-    #     print()
-    #     # DEBUG
-    #     return random.choice(["left", "right", "up", "down"])
 
 if __name__ == "__main__":
     # 人間でプレイしたいとき
@@ -278,7 +267,8 @@ if __name__ == "__main__":
 
     # ランダムプレイヤーでプレイしたいとき
     # Game2048(RandomPlayer()).run()
-    Game2048(AIPlayer()).run()
 
-    # testMCTS = MCTS()
-    # testMCTS.test_printnode()
+    game1 = Game2048(AIPlayer())
+    for i in range(2):
+        game1.run()
+

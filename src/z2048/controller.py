@@ -28,7 +28,6 @@ class Human(Controller):
         return ""
 
 class MCTS():
-    # Attribute 
     root_node: 'Node'
 
     def __init__(self, board: list[list[int]] = None) -> None:
@@ -42,13 +41,12 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 4000) -> str:
+    def run_mcts(self, simulations: int = 200) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
         and actually change the board state.
         """
-        # Step 1: Precompute valid moves
         valid_moves = [
             move for move in ["left", "right", "up", "down"]
             if self.is_move_valid(self.root_node.board, move)
@@ -56,47 +54,221 @@ class MCTS():
 
         if not valid_moves:
             print("no valid move")
-            # If no valid moves exist, return a default move (game over scenario)
             return "left"
 
-        # Step 2: Run MCTS simulations
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=5)
+            score = self.simulate(node, steps=20)
             self.backpropagate(node, score)
 
-        # Step 3: Filter eligible children based on:
-        # - Minimum visit threshold (3)
-        # - Positive value
-        # - The move must be in the list of valid moves
         eligible_children = [
             child for child in self.root_node.child
-            if child.visit >= 3
-            and child.value > 0
-            and child.move_direction in valid_moves
-            # if child.move_direction in valid_moves
+            # if child.visit >= 3
             # and child.value > 0
+            # and child.move_direction in valid_moves
+            if child.move_direction in valid_moves
+            and child.value > 0
         ]
         
-        for child in self.root_node.child:
-            print(f"move: {child.move_direction}, visit: {child.visit}, avg: {child.value/child.visit}")
+        # for child in self.root_node.child:
+        #     print(f"move: {child.move_direction}, visit: {child.visit}, avg: {child.value/child.visit}")
 
-        # Debug: Print eligible children details
-        # print()
-        # for child in eligible_children:
-        #     print(f"{child.move_direction}, avg: {child.value / child.visit}, visit: {child.visit}, value: {child.value}")
-
-        # Step 4: Select the best move
         if eligible_children:
-            # Select the child with the highest average value
-            # best_child = max(eligible_children, key=lambda n: n.value / n.visit)
-            best_child = max(eligible_children, key=lambda n: n.visit)
-            print(f"best child: {best_child.move_direction}")
+            best_child = max(eligible_children, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
             return best_child.move_direction
         else:
             move = random.choice(valid_moves)
-            print(f"random: {move}")
             return move
+
+    def evaluate_board(self, board, value, visit):
+        # Weights for each component (adjust as needed)
+        WEIGHT_MONOTONICITY = 2.0
+        WEIGHT_SMOOTHNESS   = 2.0
+        WEIGHT_EMPTY        = 1.5
+        WEIGHT_MAX_CORNER   = 0.8
+        WEIGHT_MAX_TILE     = 0.5
+        WEIGHT_NODE_AVERAGE = 1.3 
+
+        rows = board
+        cols = list(zip(*board))
+        
+        # Calculate number of empty cells
+        empty_count = sum(row.count(0) for row in rows)
+        
+        # Identify the maximum tile
+        max_tile = max(max(row) for row in rows)
+        
+        # Check if max tile is in a corner
+        corners = [rows[0][0], rows[0][-1], rows[-1][0], rows[-1][-1]]
+        max_in_corner = 1 if max_tile in corners else 0
+
+        # Monotonicity calculation
+        def row_monotonicity(r):
+            inc_cost = 0
+            dec_cost = 0
+            for i in range(len(r)-1):
+                if r[i] > r[i+1]:
+                    inc_cost += abs(r[i] - r[i+1])
+                else:
+                    dec_cost += abs(r[i] - r[i+1])
+            return -min(inc_cost, dec_cost)
+
+        monotonicity_score = 0
+        for r in rows:
+            monotonicity_score += row_monotonicity(r)
+        for c in cols:
+            monotonicity_score += row_monotonicity(c)
+        
+        # Smoothness calculation
+        def smoothness_score_for_line(line):
+            score_line = 0
+            for i in range(len(line)-1):
+                if line[i] != 0 and line[i+1] != 0:
+                    score_line -= abs(line[i] - line[i+1])
+            return score_line
+
+        smoothness_score = 0
+        for r in rows:
+            smoothness_score += smoothness_score_for_line(r)
+        for c in cols:
+            c = list(c)
+            smoothness_score += smoothness_score_for_line(c)
+        
+        # Empty cells score
+        empty_score = empty_count
+        
+        # Max tile score: Using log2 for scaling
+        max_tile_score = math.log2(max_tile) if max_tile > 0 else 0
+
+        # Average node value (score/visit), safe division
+        avg_node_value = value / visit if visit > 0 else 0
+
+        # Combine the scores
+        total_score = (WEIGHT_MONOTONICITY * monotonicity_score
+                    + WEIGHT_SMOOTHNESS * smoothness_score
+                    + WEIGHT_EMPTY * empty_score
+                    + WEIGHT_MAX_CORNER * max_in_corner
+                    + WEIGHT_MAX_TILE * max_tile_score
+                    + WEIGHT_NODE_AVERAGE * avg_node_value)
+        
+        # print(f"total {total_score}")
+        return total_score
+
+
+    # def evaluate_board(self, board, value, visit):
+    #     # Weights for each component (adjust as needed)
+    #     WEIGHT_MONOTONICITY = 2.0
+    #     WEIGHT_SMOOTHNESS   = 2.5
+    #     WEIGHT_EMPTY        = 1.5
+    #     WEIGHT_MAX_CORNER   = 0.5
+    #     WEIGHT_MAX_TILE     = 0.5
+    #     WEIGHT_NODE_AVERAGE = 1.5 
+
+    #     rows = board
+    #     cols = list(zip(*board))
+        
+    #     # Calculate number of empty cells
+    #     empty_count = sum(row.count(0) for row in rows)
+        
+    #     # Identify the maximum tile
+    #     max_tile = max(max(row) for row in rows)
+        
+    #     # Check if max tile is in a corner
+    #     corners = [rows[0][0], rows[0][-1], rows[-1][0], rows[-1][-1]]
+    #     max_in_corner = 1 if max_tile in corners else 0
+
+    #     # Define a snake pattern function for rows
+    #     def snake_pattern_horizontal(board):
+    #         """
+    #         Returns a list of tile values in a snake-like traversal horizontally:
+    #         first row left-to-right, second row right-to-left, etc.
+    #         """
+    #         sequence = []
+    #         for i, row in enumerate(board):
+    #             if i % 2 == 0:
+    #                 # Even row index: left-to-right
+    #                 sequence.extend(row)
+    #             else:
+    #                 # Odd row index: right-to-left
+    #                 sequence.extend(row[::-1])
+    #         return sequence
+
+    #     # Define a snake pattern for columns as well
+    #     def snake_pattern_vertical(board):
+    #         """
+    #         Snake-like traversal vertically:
+    #         first column top-to-bottom, second column bottom-to-top, etc.
+    #         """
+    #         transposed = list(zip(*board))
+    #         sequence = []
+    #         for j, col in enumerate(transposed):
+    #             col = list(col)
+    #             if j % 2 == 0:
+    #                 sequence.extend(col)       # top-to-bottom
+    #             else:
+    #                 sequence.extend(col[::-1]) # bottom-to-top
+    #         return sequence
+
+    #     def monotonicity_score_for_sequence(seq):
+    #         """
+    #         Compute monotonicity for a given sequence.
+    #         We use the same method as row_monotonicity:
+    #         lower inc_cost or dec_cost means more monotonic.
+    #         """
+    #         inc_cost = 0
+    #         dec_cost = 0
+    #         for i in range(len(seq)-1):
+    #             if seq[i] > seq[i+1]:
+    #                 inc_cost += abs(seq[i] - seq[i+1])
+    #             else:
+    #                 dec_cost += abs(seq[i] - seq[i+1])
+    #         # Negative of min cost to reward more monotonic sequences
+    #         return -min(inc_cost, dec_cost)
+
+    #     # Compute horizontal snake monotonicity
+    #     horizontal_snake_seq = snake_pattern_horizontal(board)
+    #     horizontal_monotonicity = monotonicity_score_for_sequence(horizontal_snake_seq)
+
+    #     # Compute vertical snake monotonicity
+    #     vertical_snake_seq = snake_pattern_vertical(board)
+    #     vertical_monotonicity = monotonicity_score_for_sequence(vertical_snake_seq)
+
+    #     # Combine horizontal and vertical monotonicity
+    #     monotonicity_score = horizontal_monotonicity + vertical_monotonicity
+
+    #     # Smoothness calculation (remain the same)
+    #     def smoothness_score_for_line(line):
+    #         score_line = 0
+    #         for i in range(len(line)-1):
+    #             if line[i] != 0 and line[i+1] != 0:
+    #                 score_line -= abs(line[i] - line[i+1])
+    #         return score_line
+
+    #     smoothness_score = 0
+    #     for r in rows:
+    #         smoothness_score += smoothness_score_for_line(r)
+    #     for c in cols:
+    #         c = list(c)
+    #         smoothness_score += smoothness_score_for_line(c)
+        
+    #     # Empty cells score
+    #     empty_score = empty_count
+        
+    #     # Max tile score: Using log2 for scaling
+    #     max_tile_score = math.log2(max_tile) if max_tile > 0 else 0
+
+    #     # Average node value (score/visit), safe division
+    #     avg_node_value = value / visit if visit > 0 else 0
+
+    #     # Combine the scores
+    #     total_score = (WEIGHT_MONOTONICITY * monotonicity_score
+    #                 + WEIGHT_SMOOTHNESS * smoothness_score
+    #                 + WEIGHT_EMPTY * empty_score
+    #                 + WEIGHT_MAX_CORNER * max_in_corner
+    #                 + WEIGHT_MAX_TILE * max_tile_score
+    #                 + WEIGHT_NODE_AVERAGE * avg_node_value)
+
+    #     return total_score
 
     def is_move_valid(self, board: list[list[int]], move_direction: str) -> bool:
         """
@@ -127,16 +299,9 @@ class MCTS():
         Sets the child node's board as the result of the move in move_direction.
         """
         if len(current_node.possible_move) > 0:
-            # Choose one unexplored move
             move_direction = random.choice(current_node.possible_move)
-            
-            # Simulate the move to get the resulting board
             new_board, score = self.simulate_move(current_node.board, move_direction)
-            
-            # Create the child node with the updated board
             child_node = self.Node(parent=current_node, move_direction=move_direction, board=new_board)
-            
-            # Add the child to the current node and remove the move from possible moves
             current_node.child.append(child_node)
             current_node.possible_move.remove(move_direction)
             
@@ -165,28 +330,6 @@ class MCTS():
             total_score += score
 
         return total_score
-    
-    # def next_move(self, board: list[list[int]]):
-    #     current_board = [row[:] for row in board]
-    #     max_zero = 0
-    #     best_board: current_board
-    #     best_score: 0 
-    #     for move in ["left", "right", "up", "down"]:
-    #         new_board, score = self.simulate_move(current_board, move)
-
-    #         # check 0 count
-    #         zero_count = 0            
-    #         for row in current_board:
-    #             for tile in row:
-    #                 if tile == 0:
-    #                     zero_count += 0
-            
-    #         if zero_count >= max_zero:
-    #             max_zero = zero_count
-    #             best_board = new_board
-    #             best_score = score
-        
-    #     return best_board, best_score
 
     @staticmethod
     def simulate_move(board: list[list[int]], direction: str) -> tuple[list[list[int]], int]:
