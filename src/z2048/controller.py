@@ -201,7 +201,6 @@ class MCTS():
         # Make a copy of the board to avoid mutating the original
         new_board = [row[:] for row in board]
         score_gained = 0
-        score_final = 0
 
         if direction == "left":
             for i in range(SIZE):
@@ -231,9 +230,8 @@ class MCTS():
 
         if new_board != board:
             add_new_tile(new_board)
-            score_final = score_gained
 
-        return new_board, score_final
+        return new_board, score_gained
     
 
     def backpropagate(self, node: 'Node', score: int):
