@@ -1,6 +1,7 @@
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from main import Game2048, AIPlayer
+import math
 
 def run_single_game(weights: dict) -> dict:
     """
@@ -19,30 +20,38 @@ def run_single_game(weights: dict) -> dict:
 
 def run_games_for_weights(weights: dict, num_games: int):
     """
-    Runs multiple games in parallel for a single weight combination.
+    Runs multiple games in smaller parallel batches for a single weight combination.
+    For example, if num_games=10 and we choose batch_size=5, it will run two batches of 5 games each.
     """
     results = []
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(run_single_game, weights) for _ in range(num_games)]
+    batch_size = 5  # Adjust as needed
+    num_batches = math.ceil(num_games / batch_size)
 
-        for future in as_completed(futures):
-            result = future.result()
-            results.append(result)
+    for _ in range(num_batches):
+        # Determine how many games to run in this batch (for cases where num_games is not a multiple of batch_size)
+        current_batch_size = min(batch_size, num_games - len(results))
+        
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(run_single_game, weights) for _ in range(current_batch_size)]
+            for future in as_completed(futures):
+                result = future.result()
+                results.append(result)
+    
     return results
 
 def random_search(num_trials: int, num_games_per_trial: int):
     """
     Performs random search by generating random weight combinations, running multiple games per combination
-    in parallel, and printing the results for each individual run.
+    in parallel (in smaller batches), and printing the results for each individual run.
     """
     # Define ranges for each weight
     weight_ranges = {
         "monotonicity": (1.0, 3.0),
         "smoothness": (0.5, 3.0),
         "empty": (0.5, 2.0),
-        "max_corner": (0.1, 1.5),
-        "max_tile": (0.1, 1.5),
-        "node_average": (0.1, 2.0),
+        "max_corner": (0.5, 2.0),
+        "max_tile": (0.5, 2.0),
+        "node_average": (0.5, 2.5),
         "node_access": (0.05, 0.4)
     }
 
@@ -51,9 +60,8 @@ def random_search(num_trials: int, num_games_per_trial: int):
     for trial in range(num_trials):
         # Generate a random weight combination
         weights = {key: round(random.uniform(*value), 2) for key, value in weight_ranges.items()}
-        # print(f"\nRunning trial {trial+1}/{num_trials} with weights: {weights}")
 
-        # Run games for this weight combination in parallel
+        # Run games for this weight combination in smaller parallel batches
         results = run_games_for_weights(weights, num_games_per_trial)
 
         # Print results for each game
@@ -64,8 +72,8 @@ def random_search(num_trials: int, num_games_per_trial: int):
 
 def main():
     # Configuration
-    num_trials = 100  # Number of random weight combinations to test
-    num_games_per_trial = 5  # Number of games to run per weight combination
+    num_trials = 10  # Number of random weight combinations to test
+    num_games_per_trial = 10  # Number of games to run per weight combination (will be done in two batches of 5)
 
     print("Starting Random Search for MCTS Weights Optimization...\n")
     random_search(num_trials, num_games_per_trial)

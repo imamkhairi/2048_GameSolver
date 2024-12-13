@@ -69,7 +69,7 @@ class MCTS():
 
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=20)
+            score = self.simulate(node, steps=25)
             self.backpropagate(node, score)
 
         eligible_children = [
@@ -162,7 +162,8 @@ class MCTS():
                     + WEIGHT_EMPTY * empty_score
                     + WEIGHT_MAX_CORNER * max_in_corner
                     + WEIGHT_MAX_TILE * max_tile_score
-                    + WEIGHT_NODE_AVERAGE * avg_node_value)
+                    + WEIGHT_NODE_AVERAGE * avg_node_value
+                    + WEIGHT_NODE_ACCESS * visit)
         
         
         return total_score
