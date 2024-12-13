@@ -234,12 +234,30 @@ class Game2048:
 
             self.draw_board()
 
+            # if lost:
+            #     # print(f"Game Over! Final Score: {self.score}")
+            #     self.draw_board()
+            #     pygame.display.flip()  # Ensure the final state of the board is displayed
+
+            #     # Wait for user input to close
+            #     waiting_for_input = True
+            #     while waiting_for_input:
+            #         for event in pygame.event.get():
+            #             if event.type == pygame.QUIT:
+            #                 waiting_for_input = False
+            #             elif event.type == pygame.KEYDOWN:
+            #                 waiting_for_input = False  # Close on any key press
+            #     pygame.quit()
+            #     exit(0)
+            
+            # Original 
             if lost:
-                print(f"score {self.score}")
+                # print(f"score {self.score}")
                 exit(0)
+            # Original end
 
             pygame.display.flip()
-            clock.tick(60)
+            # clock.tick(60)
             # clock.tick(30)
 
         pygame.quit()
