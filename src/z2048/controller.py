@@ -4,6 +4,7 @@ from typing import Tuple
 import random
 import pygame # type: ignore
 import math
+import time
 
 class Controller(ABC):
     @abstractmethod
@@ -30,12 +31,12 @@ class Human(Controller):
 class MCTS():
     root_node: 'Node'
     weights = {
-            "monotonicity": 2.5,  # Original default values
-            "smoothness": 2.0,
-            "empty": 1.5,
-            "max_corner": 0.8,
-            "max_tile": 0.5,
-            "node_average": 1.3,
+            "monotonicity": 0.4,  # Original default values
+            "smoothness": 2.5,
+            "empty": 2.8,
+            "max_corner": 0.9,
+            "max_tile": 0.05,
+            "node_average": 2.9,
             "node_access": 2.0
     }
     
@@ -52,47 +53,76 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 200) -> str:
+    def run_mcts(self, simulations: int = 50) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
         and actually change the board state.
         """
-        valid_moves = [
-            move for move in ["left", "right", "up", "down"]
-            if self.is_move_valid(self.root_node.board, move)
-        ]
+        # valid_child = [
+        # # valid_moves = [
+        #     # move for move in ["left", "right", "up", "down"]
+        #     # if self.is_move_valid(self.root_node.board, move)
+            
+        #     # child.move_direction for child in self.root_node.child
+        #     # if child.board != self.root_node.board
+        
+        #     child for child in self.root_node.child if child.board != self.root_node.board
+        
+        # ]
 
-        if not valid_moves:
-            print("no valid move")
-            return "left"
+        # # if not valid_moves:
+        # if not valid_child:
+        #     print("no valid move")
+        #     return "left"
 
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=25)
+            score = self.simulate(node, steps=150)
             self.backpropagate(node, score)
 
-        eligible_children = [
-            child for child in self.root_node.child
-            # if child.visit >= 3
-            # and child.value > 0
-            # and child.move_direction in valid_moves
-            if child.move_direction in valid_moves
-            and child.value > 0
+        valid_child = [
+        # valid_moves = [
+            # move for move in ["left", "right", "up", "down"]
+            # if self.is_move_valid(self.root_node.board, move)
+            
+            # child.move_direction for child in self.root_node.child
+            # if child.board != self.root_node.board
+        
+            child for child in self.root_node.child if child.board != self.root_node.board
+        
         ]
+
+        # if not valid_moves:
+        if not valid_child:
+            print("no valid move")
+            move = random.choice(["left", "right", "up", "down"])
+            return move
+
+        # eligible_children = [
+        #     child for child in self.root_node.child
+        #     # and child.value > 0
+        #     # and child.move_direction in valid_moves
+        #     # if child.move_direction in valid_moves
+        #     if child.visit >= 3 
+        #     and child.value > 0
+        # ]
         
         # print()
         # for child in self.root_node.child:
         #     print(f"move: {child.move_direction}, visit: {child.visit}, avg: {child.value/child.visit}")
 
-        if eligible_children:
-            best_child = max(eligible_children, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
+        # if eligible_children:
+        if valid_child:
+            best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
             return best_child.move_direction
-        else:
-            move = random.choice(valid_moves)
-            return move
+        # else:
+        #     move = random.choice(valid_child)
+        #     return move
 
     def evaluate_board(self, board, value, visit):
+        start_time = time.time()
+
         # Weights for each component (adjust as needed)
         WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 2.0)
         WEIGHT_SMOOTHNESS   = self.weights.get('smoothness', 2.0)
@@ -165,7 +195,9 @@ class MCTS():
                     + WEIGHT_NODE_AVERAGE * avg_node_value
                     + WEIGHT_NODE_ACCESS * visit)
         
-        
+        end_time = time.time()
+
+        print(f"Exec time = {end_time - start_time:.6f} seconds")
         return total_score
 
 

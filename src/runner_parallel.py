@@ -46,13 +46,13 @@ def random_search(num_trials: int, num_games_per_trial: int):
     """
     # Define ranges for each weight
     weight_ranges = {
-        "monotonicity": (1.0, 3.0),
-        "smoothness": (0.5, 3.0),
-        "empty": (0.5, 2.0),
-        "max_corner": (0.5, 2.0),
-        "max_tile": (0.5, 2.0),
-        "node_average": (0.5, 2.5),
-        "node_access": (0.05, 0.4)
+        "monotonicity": (0.3, 0.5),
+        "smoothness": (2.4, 2.6),
+        "empty": (2.7, 2.9),
+        "max_corner": (0.8, 1.0),
+        "max_tile": (0.0, 0.1),
+        "node_average": (2.8, 3.0),
+        "node_access": (1.7, 1.9)
     }
 
     print("weight_monotonicity, weight_smoothness, weight_empty, weight_max_corner, weight_max_tile, weight_node_average, weight_node_access, score, max_tile")
@@ -72,8 +72,8 @@ def random_search(num_trials: int, num_games_per_trial: int):
 
 def main():
     # Configuration
-    num_trials = 10  # Number of random weight combinations to test
-    num_games_per_trial = 10  # Number of games to run per weight combination (will be done in two batches of 5)
+    num_trials = 1  # Number of random weight combinations to test
+    num_games_per_trial = 1  # Number of games to run per weight combination (will be done in two batches of 5)
 
     print("Starting Random Search for MCTS Weights Optimization...\n")
     random_search(num_trials, num_games_per_trial)
