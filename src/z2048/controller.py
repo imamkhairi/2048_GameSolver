@@ -36,8 +36,6 @@ class MCTS():
             "empty": 2.8,
             "max_corner": 0.9,
             "max_tile": 0.05,
-            "node_average": 2.9,
-            "node_access": 2.0
     }
     
     def __init__(self, board: list[list[int]] = None, weights: dict = None) -> None:
@@ -53,45 +51,22 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 50) -> str:
+    def run_mcts(self, simulations: int = 200) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
         and actually change the board state.
         """
-        # valid_child = [
-        # # valid_moves = [
-        #     # move for move in ["left", "right", "up", "down"]
-        #     # if self.is_move_valid(self.root_node.board, move)
-            
-        #     # child.move_direction for child in self.root_node.child
-        #     # if child.board != self.root_node.board
-        
-        #     child for child in self.root_node.child if child.board != self.root_node.board
-        
-        # ]
-
-        # # if not valid_moves:
-        # if not valid_child:
-        #     print("no valid move")
-        #     return "left"
 
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=150)
+            score = self.simulate(node, steps=40)
             self.backpropagate(node, score)
 
         valid_child = [
-        # valid_moves = [
-            # move for move in ["left", "right", "up", "down"]
-            # if self.is_move_valid(self.root_node.board, move)
-            
-            # child.move_direction for child in self.root_node.child
-            # if child.board != self.root_node.board
-        
-            child for child in self.root_node.child if child.board != self.root_node.board
-        
+            child for child in self.root_node.child if child.board != self.root_node.board and child.visit > 0
         ]
+
 
         # if not valid_moves:
         if not valid_child:
@@ -99,29 +74,21 @@ class MCTS():
             move = random.choice(["left", "right", "up", "down"])
             return move
 
-        # eligible_children = [
-        #     child for child in self.root_node.child
-        #     # and child.value > 0
-        #     # and child.move_direction in valid_moves
-        #     # if child.move_direction in valid_moves
-        #     if child.visit >= 3 
-        #     and child.value > 0
-        # ]
-        
-        # print()
-        # for child in self.root_node.child:
-        #     print(f"move: {child.move_direction}, visit: {child.visit}, avg: {child.value/child.visit}")
+        # print(f"\n test ini")
+        # for child in valid_child:
+        #     print(f"{child.move_direction}: {0.3*self.evaluate_board(child.board) + 0.7*(child.value / child.visit)}")
 
         # if eligible_children:
         if valid_child:
-            best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
+            # best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
+            best_child = max(valid_child, key=lambda n: 0.3*(self.evaluate_board(n.board)) + 0.7*(n.value))
             return best_child.move_direction
         # else:
         #     move = random.choice(valid_child)
         #     return move
 
-    def evaluate_board(self, board, value, visit):
-        start_time = time.time()
+    def evaluate_board(self, board):
+        # start_time = time.time()
 
         # Weights for each component (adjust as needed)
         WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 2.0)
@@ -129,8 +96,6 @@ class MCTS():
         WEIGHT_EMPTY        = self.weights.get('empty', 1.5)
         WEIGHT_MAX_CORNER   = self.weights.get('max_corner', 0.8)
         WEIGHT_MAX_TILE     = self.weights.get('max_tile', 0.5)
-        WEIGHT_NODE_AVERAGE = self.weights.get('node_average', 1.3)
-        WEIGHT_NODE_ACCESS = self.weights.get('node_access', 1.3)
 
         rows = board
         cols = list(zip(*board))
@@ -183,32 +148,18 @@ class MCTS():
         # Max tile score: Using log2 for scaling
         max_tile_score = math.log2(max_tile) if max_tile > 0 else 0
 
-        # Average node value (score/visit), safe division
-        avg_node_value = value / visit if visit > 0 else 0
-
         # Combine the scores
         total_score = (WEIGHT_MONOTONICITY * monotonicity_score
                     + WEIGHT_SMOOTHNESS * smoothness_score
                     + WEIGHT_EMPTY * empty_score
                     + WEIGHT_MAX_CORNER * max_in_corner
                     + WEIGHT_MAX_TILE * max_tile_score
-                    + WEIGHT_NODE_AVERAGE * avg_node_value
-                    + WEIGHT_NODE_ACCESS * visit)
+                    )
         
-        end_time = time.time()
+        # end_time = time.time()
+        # print(f"Exec time = {end_time - start_time:.6f} seconds")
 
-        print(f"Exec time = {end_time - start_time:.6f} seconds")
         return total_score
-
-
-    def is_move_valid(self, board: list[list[int]], move_direction: str) -> bool:
-        """
-        Checks if applying move_direction to the board changes the board state.
-        """
-        # Simulate the move
-        new_board, _ = self.simulate_move(board, move_direction)
-        # Compare the new board with the original board
-        return new_board != board
 
     def selection(self, current_node) -> 'Node':
         """
@@ -259,6 +210,8 @@ class MCTS():
             
             current_board = new_board
             total_score += score
+
+        # node.simulation_evaluation += self.evaluate_board(current_board, node.value, node.visit)
 
         return total_score
 
@@ -347,7 +300,7 @@ class MCTS():
         """
         if node.visit == 0:
             return float('inf')  # Encourage exploration of unvisited nodes
-        return node.value / node.visit + math.sqrt(2 * math.log(node.parent.visit) / node.visit)
+        return node.value / node.visit + math.sqrt(4 * math.log(node.parent.visit) / node.visit)
 
 
     class Node:
@@ -357,8 +310,10 @@ class MCTS():
         board: list[list[int]]
         move_direction: str
         parent: 'Node'  # type: ignore
-        child: list['Node'] # type: ignore
+        child: list['Node']  # type: ignore
         possible_move: list[str]
+        is_terminal: bool
+        simulation_evaluation: float  # New field for simulation evaluation
 
         # Constructor
         def __init__(self, parent: 'Node' = None, move_direction: str = "root", board: list[list[int]] = None): # type: ignore
@@ -370,6 +325,7 @@ class MCTS():
             self.child = []  # Initialize the child list
             self.possible_move = ["left", "right", "up", "down"]
             self.is_terminal = not self.check_moves_available()
+            self.simulation_evaluation = 0.0
 
         def check_moves_available(self) -> bool:
             """

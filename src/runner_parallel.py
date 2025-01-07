@@ -44,18 +44,16 @@ def random_search(num_trials: int, num_games_per_trial: int):
     Performs random search by generating random weight combinations, running multiple games per combination
     in parallel (in smaller batches), and printing the results for each individual run.
     """
-    # Define ranges for each weight
     weight_ranges = {
-        "monotonicity": (0.3, 0.5),
-        "smoothness": (2.4, 2.6),
-        "empty": (2.7, 2.9),
-        "max_corner": (0.8, 1.0),
-        "max_tile": (0.0, 0.1),
-        "node_average": (2.8, 3.0),
-        "node_access": (1.7, 1.9)
+        "monotonicity": (1.0, 1.4),   # Focus on improving board organization
+        "smoothness": (0.4, 0.8),     # Prioritize smoother merges
+        "empty": (1.0, 1.4),          # Slightly increase importance for survival
+        "max_corner": (1.0, 1.4),     # Keep moderate influence
+        "max_tile": (1.1, 1.5),       # Reward larger tiles more consistently
     }
 
-    print("weight_monotonicity, weight_smoothness, weight_empty, weight_max_corner, weight_max_tile, weight_node_average, weight_node_access, score, max_tile")
+
+    print("weight_monotonicity, weight_smoothness, weight_empty, weight_max_corner, weight_max_tile, score, max_tile")
 
     for trial in range(num_trials):
         # Generate a random weight combination
@@ -67,13 +65,13 @@ def random_search(num_trials: int, num_games_per_trial: int):
         # Print results for each game
         for result in results:
             print(f"{weights['monotonicity']}, {weights['smoothness']}, {weights['empty']}, "
-                  f"{weights['max_corner']}, {weights['max_tile']}, {weights['node_average']}, {weights['node_access']}, "
+                  f"{weights['max_corner']}, {weights['max_tile']}, "
                   f"{result['score']}, {result['max_tile']}")
 
 def main():
     # Configuration
-    num_trials = 1  # Number of random weight combinations to test
-    num_games_per_trial = 1  # Number of games to run per weight combination (will be done in two batches of 5)
+    num_trials = 10  # Number of random weight combinations to test
+    num_games_per_trial = 5  # Number of games to run per weight combination (will be done in two batches of 5)
 
     print("Starting Random Search for MCTS Weights Optimization...\n")
     random_search(num_trials, num_games_per_trial)
