@@ -51,7 +51,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 200) -> str:
+    def run_mcts(self, simulations: int = 400) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -60,7 +60,7 @@ class MCTS():
 
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=40)
+            score = self.simulate(node, steps=20)
             self.backpropagate(node, score)
 
         valid_child = [
@@ -76,12 +76,13 @@ class MCTS():
 
         # print(f"\n test ini")
         # for child in valid_child:
-        #     print(f"{child.move_direction}: {0.3*self.evaluate_board(child.board) + 0.7*(child.value / child.visit)}")
+        #     # print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board) + 0.05*(child.value / child.visit)}")
+        #     print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board)} |  {0.05*(child.value / child.visit)}")
 
         # if eligible_children:
         if valid_child:
             # best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
-            best_child = max(valid_child, key=lambda n: 0.3*(self.evaluate_board(n.board)) + 0.7*(n.value))
+            best_child = max(valid_child, key=lambda n: 0.9*(self.evaluate_board(n.board)) + 0.05*(n.value))
             return best_child.move_direction
         # else:
         #     move = random.choice(valid_child)
@@ -128,19 +129,36 @@ class MCTS():
             monotonicity_score += row_monotonicity(c)
         
         # Smoothness calculation
-        def smoothness_score_for_line(line):
-            score_line = 0
-            for i in range(len(line)-1):
-                if line[i] != 0 and line[i+1] != 0:
-                    score_line -= abs(line[i] - line[i+1])
-            return score_line
+        def smoothness(grid):
+            smoothness = 0
+            for x in range(len(grid)):
+                for y in range(len(grid[0])):
+                    if grid[x][y] != 0:
+                        log_value = math.log2(grid[x][y])
+                        # Compare with the right neighbor
+                        if y + 1 < len(grid[0]) and grid[x][y + 1] != 0:
+                            neighbor_log_value = math.log2(grid[x][y + 1])
+                            smoothness -= abs(log_value - neighbor_log_value)
+                        # Compare with the bottom neighbor
+                        if x + 1 < len(grid) and grid[x + 1][y] != 0:
+                            neighbor_log_value = math.log2(grid[x + 1][y])
+                            smoothness -= abs(log_value - neighbor_log_value)
+            return smoothness
 
-        smoothness_score = 0
-        for r in rows:
-            smoothness_score += smoothness_score_for_line(r)
-        for c in cols:
-            c = list(c)
-            smoothness_score += smoothness_score_for_line(c)
+        smoothness_score = smoothness(rows)
+        # def smoothness_score_for_line(line):
+        #     score_line = 0
+        #     for i in range(len(line)-1):
+        #         if line[i] != 0 and line[i+1] != 0:
+        #             score_line -= abs(line[i] - line[i+1])
+        #     return score_line
+
+        # smoothness_score = 0
+        # for r in rows:
+        #     smoothness_score += smoothness_score_for_line(r)
+        # for c in cols:
+        #     c = list(c)
+        #     smoothness_score += smoothness_score_for_line(c)
         
         # Empty cells score
         empty_score = empty_count
@@ -149,11 +167,11 @@ class MCTS():
         max_tile_score = math.log2(max_tile) if max_tile > 0 else 0
 
         # Combine the scores
-        total_score = (WEIGHT_MONOTONICITY * monotonicity_score
+        total_score = (WEIGHT_MONOTONICITY * monotonicity_score 
                     + WEIGHT_SMOOTHNESS * smoothness_score
                     + WEIGHT_EMPTY * empty_score
-                    + WEIGHT_MAX_CORNER * max_in_corner
-                    + WEIGHT_MAX_TILE * max_tile_score
+                    + WEIGHT_MAX_CORNER * max_in_corner * 0
+                    + WEIGHT_MAX_TILE * max_tile_score 
                     )
         
         # end_time = time.time()
@@ -165,13 +183,14 @@ class MCTS():
         """
         Traverses the tree to a node that is expandable or a terminal node (game lost).
         """
+        if current_node.is_terminal:
+            return current_node  # Stop at terminal node
+        
         while len(current_node.possible_move) == 0 and not current_node.is_terminal:  # Fully expanded and not terminal
             uct_values = [self.UCT(child) for child in current_node.child]
             max_uct_index = uct_values.index(max(uct_values))
             current_node = current_node.child[max_uct_index]
         
-        if current_node.is_terminal:
-            return current_node  # Stop at terminal node
         
         return self.expand(current_node)
 
