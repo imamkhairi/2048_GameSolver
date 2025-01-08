@@ -51,7 +51,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 400) -> str:
+    def run_mcts(self, simulations: int = 8) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -60,7 +60,7 @@ class MCTS():
 
         for _ in range(simulations):
             node = self.selection(self.root_node)
-            score = self.simulate(node, steps=20)
+            score = self.simulate(node, steps=1000)
             self.backpropagate(node, score)
 
         valid_child = [
@@ -74,15 +74,15 @@ class MCTS():
             move = random.choice(["left", "right", "up", "down"])
             return move
 
-        # print(f"\n test ini")
-        # for child in valid_child:
-        #     # print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board) + 0.05*(child.value / child.visit)}")
-        #     print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board)} |  {0.05*(child.value / child.visit)}")
+        print(f"\n test ini")
+        for child in valid_child:
+            # print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board) + 0.05*(child.value / child.visit)}")
+            print(f"{child.move_direction}: {self.evaluate_board(child.board)} |  {(child.value / child.visit)}")
 
         # if eligible_children:
         if valid_child:
             # best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
-            best_child = max(valid_child, key=lambda n: 0.9*(self.evaluate_board(n.board)) + 0.05*(n.value))
+            best_child = max(valid_child, key=lambda n: (self.evaluate_board(n.board)) + 0.001*(n.value))
             return best_child.move_direction
         # else:
         #     move = random.choice(valid_child)
@@ -112,21 +112,59 @@ class MCTS():
         max_in_corner = 1 if max_tile in corners else 0
 
         # Monotonicity calculation
-        def row_monotonicity(r):
-            inc_cost = 0
-            dec_cost = 0
-            for i in range(len(r)-1):
-                if r[i] > r[i+1]:
-                    inc_cost += abs(r[i] - r[i+1])
-                else:
-                    dec_cost += abs(r[i] - r[i+1])
-            return -min(inc_cost, dec_cost)
+        def monotonicity(grid):
+            # Scores for all four directions
+            totals = [0, 0, 0, 0]  # [up, down, left, right]
 
-        monotonicity_score = 0
-        for r in rows:
-            monotonicity_score += row_monotonicity(r)
-        for c in cols:
-            monotonicity_score += row_monotonicity(c)
+            # Up/Down monotonicity (iterate over columns)
+            for y in range(len(grid[0])):  # y represents the column index
+                current = 0
+                next = current + 1
+                while next < len(grid):
+                    # Skip empty cells
+                    while next < len(grid) and grid[next][y] == 0:
+                        next += 1
+                    if next >= len(grid):
+                        break
+
+                    # Current and next values in log2
+                    current_value = math.log2(grid[current][y]) if grid[current][y] != 0 else 0
+                    next_value = math.log2(grid[next][y]) if grid[next][y] != 0 else 0
+
+                    if current_value > next_value:
+                        totals[0] += next_value - current_value  # Upward monotonicity
+                    elif next_value > current_value:
+                        totals[1] += current_value - next_value  # Downward monotonicity
+
+                    current = next
+                    next += 1
+
+            # Left/Right monotonicity (iterate over rows)
+            for x in range(len(grid)):  # x represents the row index
+                current = 0
+                next = current + 1
+                while next < len(grid[0]):
+                    # Skip empty cells
+                    while next < len(grid[0]) and grid[x][next] == 0:
+                        next += 1
+                    if next >= len(grid[0]):
+                        break
+
+                    # Current and next values in log2
+                    current_value = math.log2(grid[x][current]) if grid[x][current] != 0 else 0
+                    next_value = math.log2(grid[x][next]) if grid[x][next] != 0 else 0
+
+                    if current_value > next_value:
+                        totals[2] += next_value - current_value  # Leftward monotonicity
+                    elif next_value > current_value:
+                        totals[3] += current_value - next_value  # Rightward monotonicity
+
+                    current = next
+                    next += 1
+
+            # Combine scores: max of up/down and max of left/right
+            return max(totals[0], totals[1]) + max(totals[2], totals[3])
+
         
         # Smoothness calculation
         def smoothness(grid):
@@ -145,21 +183,6 @@ class MCTS():
                             smoothness -= abs(log_value - neighbor_log_value)
             return smoothness
 
-        smoothness_score = smoothness(rows)
-        # def smoothness_score_for_line(line):
-        #     score_line = 0
-        #     for i in range(len(line)-1):
-        #         if line[i] != 0 and line[i+1] != 0:
-        #             score_line -= abs(line[i] - line[i+1])
-        #     return score_line
-
-        # smoothness_score = 0
-        # for r in rows:
-        #     smoothness_score += smoothness_score_for_line(r)
-        # for c in cols:
-        #     c = list(c)
-        #     smoothness_score += smoothness_score_for_line(c)
-        
         # Empty cells score
         empty_score = empty_count
         
@@ -167,8 +190,8 @@ class MCTS():
         max_tile_score = math.log2(max_tile) if max_tile > 0 else 0
 
         # Combine the scores
-        total_score = (WEIGHT_MONOTONICITY * monotonicity_score 
-                    + WEIGHT_SMOOTHNESS * smoothness_score
+        total_score = (WEIGHT_MONOTONICITY * monotonicity(rows)
+                    + WEIGHT_SMOOTHNESS * smoothness(rows)
                     + WEIGHT_EMPTY * empty_score
                     + WEIGHT_MAX_CORNER * max_in_corner * 0
                     + WEIGHT_MAX_TILE * max_tile_score 

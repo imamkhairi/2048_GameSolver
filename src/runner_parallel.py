@@ -45,11 +45,11 @@ def random_search(num_trials: int, num_games_per_trial: int):
     in parallel (in smaller batches), and printing the results for each individual run.
     """
     weight_ranges = {
-        "monotonicity": (1.0, 1.1),   # Focus on improving board organization
-        "smoothness": (0.1, 0.2),     # Prioritize smoother merges
-        "empty": (2.7, 2.8),          # Slightly increase importance for survival
+        "monotonicity": (1.0, 1.0),   # Focus on improving board organization
+        "smoothness": (0.1, 0.1),     # Prioritize smoother merges
+        "empty": (2.7, 2.7),          # Slightly increase importance for survival
         "max_corner": (3.0, 3.5),     # Keep moderate influence
-        "max_tile": (1.0, 1.1),       # Reward larger tiles more consistently
+        "max_tile": (1.0, 1.0),       # Reward larger tiles more consistently
     }
 
 
@@ -70,7 +70,7 @@ def random_search(num_trials: int, num_games_per_trial: int):
 
 def main():
     # Configuration
-    num_trials = 5  # Number of random weight combinations to test
+    num_trials = 1  # Number of random weight combinations to test
     num_games_per_trial = 1  # Number of games to run per weight combination (will be done in two batches of 5)
 
     print("Starting Random Search for MCTS Weights Optimization...\n")
