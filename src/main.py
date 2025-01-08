@@ -270,16 +270,17 @@ class RandomPlayer(Controller):
         return random.choice(["left", "right", "up", "down"])
 
 class AIPlayer(Controller):
-    def __init__(self, weight:dict) -> None:
+    def __init__(self, alpha: float, beta: float) -> None:
         super().__init__()
         self.mcts = None
-        self.weight = weight
+        self.alpha = alpha  # Store alpha
+        self.beta = beta    # Store beta
     
     def update(self, board: list[list[int]], score: int) -> str:
         if self.mcts is None:
-            self.mcts = MCTS(board, self.weight)
+            self.mcts = MCTS(board, self.alpha, self.beta)  # Pass alpha and beta directly
         return self.mcts.update(board, score)
-
+    
 if __name__ == "__main__":
     # 人間でプレイしたいとき
     # Game2048(Human()).run()

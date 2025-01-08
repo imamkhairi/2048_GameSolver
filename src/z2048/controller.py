@@ -31,17 +31,17 @@ class Human(Controller):
 class MCTS():
     root_node: 'Node'
     weights = {
-            "monotonicity": 0.4,  # Original default values
-            "smoothness": 2.5,
-            "empty": 2.8,
-            "max_corner": 0.9,
-            "max_tile": 0.05,
+            "monotonicity": 1.0,  # Original default values
+            "smoothness": 0.1,
+            "empty": 2.7,
+            "max_corner": 5.0,
+            "max_tile": 1.0,
     }
     
-    def __init__(self, board: list[list[int]] = None, weights: dict = None) -> None:
+    def __init__(self, board: list[list[int]], alpha: float, beta: float) -> None:
         self.root_node = self.Node(None, "root", board)
-        if weights:
-            self.weights = weights
+        self.alpha = alpha
+        self.beta = beta
     
     def update(self, board: list[list[int]], score: int) -> str:
         """
@@ -74,29 +74,27 @@ class MCTS():
             move = random.choice(["left", "right", "up", "down"])
             return move
 
-        print(f"\n test ini")
-        for child in valid_child:
-            # print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board) + 0.05*(child.value / child.visit)}")
-            print(f"{child.move_direction}: {self.evaluate_board(child.board)} |  {(child.value / child.visit)}")
+        # print(f"\n test ini")
+        # for child in valid_child:
+        # #     # print(f"{child.move_direction}: {0.9*self.evaluate_board(child.board) + 0.05*(child.value / child.visit)}")
+        #     print(f"{child.move_direction}: {alpha * self.evaluate_board(child.board)} |  {beta * (child.value/child.visit)}")
 
-        # if eligible_children:
         if valid_child:
             # best_child = max(valid_child, key=lambda n: self.evaluate_board(n.board, n.value, n.visit))
-            best_child = max(valid_child, key=lambda n: (self.evaluate_board(n.board)) + 0.001*(n.value))
+            best_child = max(valid_child, key=lambda n:(self.alpha * self.evaluate_board(n.board)) + self.beta * (n.value/n.visit))
             return best_child.move_direction
         # else:
         #     move = random.choice(valid_child)
         #     return move
 
-    def evaluate_board(self, board):
-        # start_time = time.time()
 
+    def evaluate_board(self, board):
         # Weights for each component (adjust as needed)
-        WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 2.0)
-        WEIGHT_SMOOTHNESS   = self.weights.get('smoothness', 2.0)
-        WEIGHT_EMPTY        = self.weights.get('empty', 1.5)
-        WEIGHT_MAX_CORNER   = self.weights.get('max_corner', 0.8)
-        WEIGHT_MAX_TILE     = self.weights.get('max_tile', 0.5)
+        WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 1.0)
+        WEIGHT_SMOOTHNESS   = self.weights.get('smoothness', 0.1)
+        WEIGHT_EMPTY        = self.weights.get('empty', 5.0)
+        WEIGHT_MAX_CORNER   = self.weights.get('max_corner', 10.0)
+        WEIGHT_MAX_TILE     = self.weights.get('max_tile', 1.0)
 
         rows = board
         cols = list(zip(*board))
@@ -193,13 +191,10 @@ class MCTS():
         total_score = (WEIGHT_MONOTONICITY * monotonicity(rows)
                     + WEIGHT_SMOOTHNESS * smoothness(rows)
                     + WEIGHT_EMPTY * empty_score
-                    + WEIGHT_MAX_CORNER * max_in_corner * 0
+                    + WEIGHT_MAX_CORNER * max_in_corner 
                     + WEIGHT_MAX_TILE * max_tile_score 
                     )
         
-        # end_time = time.time()
-        # print(f"Exec time = {end_time - start_time:.6f} seconds")
-
         return total_score
 
     def selection(self, current_node) -> 'Node':
@@ -333,7 +328,7 @@ class MCTS():
         """
         while node is not None:
             node.visit += 1
-            node.value += score
+            node.value += math.log2(score) if score != 0 else 0
             node = node.parent
 
     def UCT(self, node: 'Node') -> float:
