@@ -51,7 +51,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 12) -> str:
+    def run_mcts(self, simulations: int = 8) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -108,6 +108,13 @@ class MCTS():
         # Check if max tile is in a corner
         corners = [rows[0][0], rows[0][-1], rows[-1][0], rows[-1][-1]]
         max_in_corner = 1 if max_tile in corners else 0
+
+        # if empty_count > 8:
+        #     WEIGHT_EMPTY = 3.0
+        if max_tile >= 1024:
+            WEIGHT_MAX_CORNER = 6.0
+        elif max_tile >= 2048:
+            WEIGHT_MAX_CORNER = 7.0
 
         # Monotonicity calculation
         def monotonicity(grid):
