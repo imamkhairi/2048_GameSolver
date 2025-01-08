@@ -51,7 +51,7 @@ class MCTS():
 
         return self.run_mcts()
 
-    def run_mcts(self, simulations: int = 8) -> str:
+    def run_mcts(self, simulations: int = 12) -> str:
         """
         Runs MCTS simulations and returns the best move direction.
         Considers only moves that meet visit thresholds, have positive value, 
@@ -90,11 +90,11 @@ class MCTS():
 
     def evaluate_board(self, board):
         # Weights for each component (adjust as needed)
-        WEIGHT_MONOTONICITY = self.weights.get('monotonicity', 1.0)
-        WEIGHT_SMOOTHNESS   = self.weights.get('smoothness', 0.1)
-        WEIGHT_EMPTY        = self.weights.get('empty', 5.0)
-        WEIGHT_MAX_CORNER   = self.weights.get('max_corner', 10.0)
-        WEIGHT_MAX_TILE     = self.weights.get('max_tile', 1.0)
+        WEIGHT_MONOTONICITY = self.weights.get('monotonicity')
+        WEIGHT_SMOOTHNESS   = self.weights.get('smoothness')
+        WEIGHT_EMPTY        = self.weights.get('empty')
+        WEIGHT_MAX_CORNER   = self.weights.get('max_corner')
+        WEIGHT_MAX_TILE     = self.weights.get('max_tile')
 
         rows = board
         cols = list(zip(*board))

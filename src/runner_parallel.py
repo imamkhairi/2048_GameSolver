@@ -194,8 +194,8 @@ def run_games_with_fixed_alpha_beta(alpha: float, beta: float, num_games: int):
 def main():
     # Configuration
     alpha = 0.3          # Fixed value of alpha
-    beta = 0.55           # Fixed value of beta
-    num_games_per_trial = 10  # Number of games to run with fixed alpha-beta
+    beta  = 0.6          # Fixed value of beta
+    num_games_per_trial = 5  # Number of games to run with fixed alpha-beta
 
     print("Running Games with Fixed Alpha-Beta Values...\n")
     run_games_with_fixed_alpha_beta(alpha, beta, num_games_per_trial)
