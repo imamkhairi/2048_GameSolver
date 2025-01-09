@@ -111,10 +111,10 @@ class MCTS():
 
         # if empty_count > 8:
         #     WEIGHT_EMPTY = 3.0
-        if max_tile >= 1024:
-            WEIGHT_MAX_CORNER = 6.0
-        elif max_tile >= 2048:
-            WEIGHT_MAX_CORNER = 7.0
+        # if max_tile >= 1024:
+        #     WEIGHT_MAX_CORNER = math.log2(max_tile)
+        # if max_tile >= 2048:
+        #     WEIGHT_MAX_CORNER = 10.0
 
         # Monotonicity calculation
         def monotonicity(grid):
